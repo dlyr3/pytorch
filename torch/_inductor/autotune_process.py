@@ -706,6 +706,7 @@ class TritonBenchmarkRequest(BenchmarkRequest):
     def make_run_fn(
         self, *input_tensors: torch.Tensor, out: torch.Tensor
     ) -> Callable[[], None]:
+        """Load the benchmark module and return a zero-arg callable that runs the kernel."""
         mod = PyCodeCache.load_by_key_path(
             self.module_cache_key,
             self.module_path,

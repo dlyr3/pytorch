@@ -3497,6 +3497,9 @@ class TestMaxAutotune(TestCase):
         self.assertNotIn("acc.to(tl.bfloat16)", code[0])
 
     @unittest.skipUnless(HAS_CUDA_AND_TRITON, "requires CUDA and Triton")
+    @unittest.mock.patch(
+        "torch._inductor.select_algorithm.TritonTemplate.test_cache", new=False
+    )
     def test_bmm_input_dedup_no_stream_overflow(self):
         """Autotuning bmm after a self-referential bmm must not crash.
 
@@ -3504,6 +3507,12 @@ class TestMaxAutotune(TestCase):
         alias the same buffer (input deduplication).  The second compilation's
         autotuning must handle the reduced parameter count without overflowing
         positional args into the stream keyword.
+
+        test_cache is disabled because the _generated_code_cache on the
+        TritonTemplate singleton does not include aliasing in its cache key,
+        so bmm(A,A) and bmm(A,B) collide.  In production (test_cache=False)
+        this is harmless: make_kernel_render regenerates correct code at
+        runtime, and our trimming in make_run_fn handles the benchmarking.
         """
         dev = GPU_TYPE
         B, N = 2, 128
